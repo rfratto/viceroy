@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+FOUND_CC=""
+
+case "$VICEROYARCH" in
+  386)   FOUND_CC="i686-w64-mingw32-gcc" ;;
+  amd64) FOUND_CC="x86_64-w64-mingw32-gcc" ;;
+  *)
+    echo "fatal: unsupported \$VICEROYARCH $VICEROYARCH for windows. Must be one of: 386, amd64" >&2
+    exit 1
+    ;;
+esac
+
+exec "$FOUND_CC" "$@"

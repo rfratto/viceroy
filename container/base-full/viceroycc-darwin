@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+FOUND_CC=""
+FOUND_LD_PATH=""
+
+echo "fatal: darwin support not yet implemented" >&2
+exit 1
+
+case "$VICEROYARCH" in
+  amd64)
+    CC="x86_64-apple-darwin20.2-clang"
+    EXTRA_LD_PATH="$OSXCROSS_PATH/lib"
+    ;;
+  arm64)
+    FOUND_CC="arm64-apple-darwin20.2-clang"
+    EXTRA_LD_PATH="$OSXCROSS_PATH/lib"
+    ;;
+  *)
+    echo "fatal: unsupported \$VICEROYARCH $VICEROYARCH for darwin. Must be one of: amd64, arm64" >&2
+    exit 1
+    ;;
+esac
+
+exec LD_LIBRARY_PATH="$FOUND_LD_PATH:$LD_LIBRARY_PATH" "$FOUND_CC" "$@"

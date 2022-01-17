@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package viceroy.v1;
+option go_package = "github.com/rfratto/viceroy/internal/viceroypb";
+
+// Empty message to use for messages that don't yet need any fields.
+message Empty {}
+
+// A Runner can run commands.
+service Runner {
+  // CreateCommand creates a new, unstarted command to execute. Commands are
+  // identified by a handle. Commands may be started by calling StartCommand.
+  rpc CreateCommand(CommandRequest) returns (CommandHandle);
+
+  // TailCommand tails output of a command. TailCommand may be called at any
+  // point before, during, or after a command executes.
+  //
+  // The returned stream will always contain the full output from the
+  // beginning. The returned stream will be closed once the compilation is
+  // finished and all data has been sent.
+  rpc TailCommand(CommandHandle) returns (stream TailCommandData);
+
+  // StartCommand starts execution of a command, returning once it completes.
+  rpc StartCommand(CommandHandle) returns (CommandStatus);
+
+  // DeleteCommand removes a command. If the command is currently running, it
+  // will be aborted. DeleteCommand must be called for every command once the
+  // output is no longer needed.
+  rpc DeleteCommand(CommandHandle) returns (Empty);
+}
+
+// CommandRequest executes a command.
+message CommandRequest {
+  // The name of the command to execute, e.g., clang.
+  string command = 1;
+
+  // Arguments passed to the compilation. The program name is not included.
+  repeated string args = 2;
+
+  // The environment passed to the compilation. Should be provided in key=value
+  // form. This specifies the full set of environment variables used when
+  // invoking the compiler.
+  repeated string environ = 3;
+
+  // The working directory to use for the command.
+  string wd = 4;
+}
+
+message CommandHandle {
+  // Internal ID of the handle.
+  string id = 1;
+}
+
+
+message TailCommandData {
+  // A fragment of data from tailed logs.
+  bytes data = 1;
+
+  // The stream this data is from.
+  Stream stream = 2;
+}
+
+enum Stream {
+  STREAM_UNKNOWN = 0;
+  STREAM_STDOUT  = 1;
+  STREAM_STDERR  = 2;
+}
+
+message CommandStatus {
+  // The request associated with the handle.
+  CommandRequest request = 1;
+
+  // State of the command.
+  CommandState state = 2;
+
+  // Set to the exit code of the program once the command has exited.
+  int32 exit_code = 3;
+}
+
+enum CommandState {
+  // Invalid CommandState.
+  COMMAND_STATE_INVALID = 0;
+  // The command has been created but not started.
+  COMMAND_STATE_CREATED = 1;
+  // The command has been started but is still running.
+  COMMAND_STATE_RUNNING = 2;
+  // The command has completed.
+  COMMAND_STATE_EXITED = 3;
+  // The command was aborted.
+  COMMAND_STATE_ABORTED = 4;
+  // The command failed.
+  COMMAND_STATE_FAILED = 5;
+}
+

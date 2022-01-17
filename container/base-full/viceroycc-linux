@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+TOOLCHAIN_PREFIX=""
+
+case "$VICEROYARCH" in
+  amd64)    TOOLCHAIN_PREFIX="x86_64-linux-gnu-"  ;;
+  386)      TOOLCHAIN_PREFIX="i686-linux-gnu-"    ;;
+  arm)      TOOLCHAIN_PREFIX="arm-linux-gnueabi-" ;;
+  arm64)    TOOLCHAIN_PREFIX="aarch64-linux-gnu-" ;;
+  *)
+    echo "fatal: unsupported \$VICEROYARCH $VICEROYARCH for linux. Must be one of: amd64, 386, arm, arm64" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$VICEROYARCH" == "arm" ] && [ "$VICEROYARM" == "7" ]; then
+  TOOLCHAIN_PREFIX="arm-linux-gnueabihf-"
+fi
+
+exec "${TOOLCHAIN_PREFIX}gcc" "$@"

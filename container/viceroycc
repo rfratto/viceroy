@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+# This is the viceroycc bash script installed on viceroy workers. It fills out
+# appropriate values for VICEROYOS, VICEROYARM, and VICEROYARCH, and invokes
+# the toolchain if it's installed. There is expected to be one
+# viceroycc-$VICEROYOS binary for every supported OS.
+
+VICEROYOS=${VICEROYOS:-$GOOS}
+if [ -z "$VICEROYOS" ]; then
+  # VICEROYOS and GOOS aren't set, fall back to host OS (linux)
+  VICEROYOS=linux
+fi
+
+VICEROYARM=${VICEROYARM:-$GOARM}
+VICEROYARCH=${VICEROYARCH:-$GOARCH}
+if [ -z "$VICEROYARCH" ]; then
+  # VICEROYARCH and GOARCH aren't set, fall back to host arch
+  HOSTARCH=$(dpkg --print-architecture)
+  case "$HOSTARCH" in
+    amd64) VICEROYARCH=amd64              ;;
+    i386)  VICEROYARCH=386                ;;
+    armel) VICEROYARCH=arm                ;;
+    armhf) VICEROYARCH=arm   VICEROYARM=7 ;;
+    arm64) VICEROYARCH=arm64              ;;
+    *)
+      echo "fatal: unrecognized host architecture $HOSTARCH" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+if [ -z "$(command -v "viceroycc-$VICEROYOS")" ]; then
+  echo "fatal: viceroycc-$VICEROYOS not installed" >&2
+  exit 1
+fi
+
+export VICEROYOS
+export VICEROYARM
+export VICEROYARCH
+exec "viceroycc-$VICEROYOS" "$@"

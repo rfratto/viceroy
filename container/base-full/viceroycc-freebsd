@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+FOUND_CC=""
+CC_EXTRA=""
+
+echo "fatal: freebsd support not yet implemented" >&2
+exit 1
+
+case "$VICEROYARCH" in
+  amd64)
+    CC_EXTRA="-target x86_64-pc-freebsd11 --sysroot=/usr/freebsd/x86_64-pc-freebsd11"
+    ;;
+  386)
+    CC_EXTRA="-target i386-pc-freebsd11 --sysroot=/usr/freebsd/i386-pc-freebsd11 -v"
+    ;;
+  *)
+    echo "fatal: unsupported \$VICEROYARCH $VICEROYARCH for freebsd. Must be one of: amd64, 386" >&2
+    exit 1
+    ;;
+esac
+
+exec clang "$CC_EXTRA $@"
