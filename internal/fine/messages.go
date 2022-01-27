@@ -139,11 +139,11 @@ type (
 		EarliestVersion     Version   // Earliest version supported by the filesystem
 		MaxReadahead        uint32    // Length of data that can be prefetched
 		Flags               InitFlags // Response init flags
-		MaxBackground       uint16
-		CongestionThreshold uint16
-		MaxWrite            uint32
-		TimeGran            uint32
-		MaxPages            uint16
+		MaxBackground       uint16    // Maximum number of background requests that can be generated
+		CongestionThreshold uint16    // Slow down if parallel requests go beyond this number
+		MaxWrite            uint32    // Maximum size of the write buffer
+		TimeGran            uint32    // Granularity supported for access/modify/create time of files
+		MaxPages            uint16    // Pages to map to the filesystem
 		MapAlignment        uint16
 	}
 

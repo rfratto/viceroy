@@ -40,4 +40,5 @@ CMD /usr/bin/viceroyworkerd \
 #   viceroyfs:      13613
 # HTTP status servers:
 #   viceroyworkerd: 8080
-EXPOSE 8080/tcp 12194/tcp 13613/tcp
+#   viceroyfs:      8081
+EXPOSE 8080/tcp 8081/tcp 12194/tcp 13613/tcp

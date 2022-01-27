@@ -160,6 +160,7 @@ func (p *provisioner) createNewContainer(ctx context.Context, name string) (*Con
 	res, err := p.docker.ContainerCreate(ctx, &container.Config{
 		ExposedPorts: nat.PortSet{
 			nat.Port("8080/tcp"):  struct{}{}, // viceroyworkerd HTTP status
+			nat.Port("8081/tcp"):  struct{}{}, // viceroyfs HTTP status
 			nat.Port("12194/tcp"): struct{}{}, // viceroyworkerd gRPC
 			nat.Port("13613/tcp"): struct{}{}, // viceroyfs gRPC
 		},
@@ -170,6 +171,7 @@ func (p *provisioner) createNewContainer(ctx context.Context, name string) (*Con
 	}, &container.HostConfig{
 		PortBindings: nat.PortMap{
 			nat.Port("8080/tcp"):  []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: "0"}},
+			nat.Port("8081/tcp"):  []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: "0"}},
 			nat.Port("12194/tcp"): []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: "0"}},
 			nat.Port("13613/tcp"): []nat.PortBinding{{HostIP: "127.0.0.1", HostPort: "0"}},
 		},

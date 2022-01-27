@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,8 +16,12 @@ import (
 	"syscall"
 	"time"
 
+	_ "net/http/pprof" // anonymous import to get the pprof handler registered
+
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rfratto/viceroy/internal/cmdutil"
 	"github.com/rfratto/viceroy/internal/fine/fuse"
 	"github.com/rfratto/viceroy/internal/fine/grpcfine"
@@ -70,6 +75,31 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 	defer workers.Wait()
 
 	var lazyHandler server.LazyHandler
+
+	// Information server worker
+	{
+		lis, err := net.Listen("tcp", "0.0.0.0:8081")
+		if err != nil {
+			level.Error(l).Log("msg", "failed to create listener for HTTP server", "err", err)
+			os.Exit(1)
+		}
+
+		r := mux.NewRouter()
+		r.Handle("/metrics", promhttp.Handler())
+		r.PathPrefix("/debug/pprof").Handler(http.DefaultServeMux)
+		srv := http.Server{Handler: r}
+
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			defer cancel()
+			level.Debug(l).Log("msg", "listening for http traffic", "addr", lis.Addr())
+			if err := srv.Serve(lis); err != nil {
+				level.Error(l).Log("msg", "http server exited with error", "err", err)
+			}
+		}()
+		defer srv.Close()
+	}
 
 	// Root mount
 	{

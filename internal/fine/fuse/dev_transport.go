@@ -36,8 +36,8 @@ var _ fine.Transport = (*devTransport)(nil)
 var maxRequestSize = syscall.Getpagesize()
 var bufSize = maxRequestSize + int(MaxWrite)
 
-// MaxWrite size supported.
-var MaxWrite uint32 = 4096
+// MaxWrite size supported. Linux 4.2.0 caps this value at 128kB.
+var MaxWrite uint32 = 128 * 1024
 
 func (kc *devTransport) RecvRequest() (hdr fine.RequestHeader, req fine.Request, err error) {
 	// Our argument reader might throw a panic in invalid messages. We want to

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-kit/log"
@@ -78,7 +79,7 @@ type Options struct {
 
 // DefaultOptions provides defaults for Server.
 var DefaultOptions = Options{
-	ConcurrencyLimit: 25,
+	ConcurrencyLimit: 64,
 }
 
 // Server is a FINE server, which asynchronously handles requests from a
@@ -357,13 +358,18 @@ func errorForResponse(err error) fine.Error {
 // processHandshake processes the hanshake sent by the peer. If complete is
 // false, the handshake is expected to be sent again.
 func (s *Server) processHandshake(header fine.RequestHeader, init *fine.InitRequest) (complete bool, err error) {
+	resp := &fine.InitResponse{
+		EarliestVersion:     fine.MinVersion,
+		MaxReadahead:        init.MaxReadahead,
+		MaxWrite:            fuse.MaxWrite,
+		MaxBackground:       1<<16 - 1,
+		CongestionThreshold: (1<<16 - 1) * 3 / 4,
+		MaxPages:            uint16(32*syscall.Getpagesize() + int(fuse.MaxWrite)),
+		Flags:               init.Flags & fine.InitBigWrites & fine.InitAsyncRead & fine.InitAsyncDIO & fine.InitParallelDirOps & fine.InitMaxPages,
+	}
+
 	if init.LatestVersion.Major > fine.MinVersion.Major {
 		// Kernel is too new. Let's tell it which version we support.
-		resp := &fine.InitResponse{
-			EarliestVersion: fine.MinVersion,
-			MaxWrite:        fuse.MaxWrite,
-			Flags:           init.Flags & fine.InitBigWrites & fine.InitAsyncRead,
-		}
 		s.sendResponse(responseHeader(header, nil), resp)
 		return false, nil
 	}
@@ -377,10 +383,6 @@ func (s *Server) processHandshake(header fine.RequestHeader, init *fine.InitRequ
 		)
 	}
 
-	resp := &fine.InitResponse{
-		EarliestVersion: fine.MinVersion,
-		MaxWrite:        fuse.MaxWrite,
-	}
 	s.sendResponse(responseHeader(header, nil), resp)
 	return true, nil
 }
