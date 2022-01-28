@@ -16,7 +16,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.uber.org/atomic v1.4.0
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	google.golang.org/grpc v1.43.0
 	google.golang.org/protobuf v1.27.1
 )

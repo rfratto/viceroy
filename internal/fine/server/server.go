@@ -14,7 +14,6 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/rfratto/viceroy/internal/fine"
 	"github.com/rfratto/viceroy/internal/fine/fuse"
-	"golang.org/x/sync/semaphore"
 )
 
 // Handler processes messages from a transport. Handler is passed to Serve,
@@ -56,10 +55,8 @@ type Handler interface {
 
 type Options struct {
 	// ConcurrencyLimit is the maximum number of concurrent requests a Server can
-	// run. If ConcurrencyLimit is 0, it will obtain its default from
+	// run. If ConcurrencyLimit is <= 0, it will obtain its default from
 	// DefaultOptions.
-	//
-	// If ConcurrencyLimit is less than 0, then it is treated as unlimited.
 	ConcurrencyLimit int
 
 	// RequestTimeout will force a request to abort after a given amount of time.
@@ -101,7 +98,7 @@ func New(l log.Logger, o Options) (*Server, error) {
 	if o.Handler == nil {
 		return nil, fmt.Errorf("Handler must be set")
 	}
-	if o.ConcurrencyLimit == 0 {
+	if o.ConcurrencyLimit <= 0 {
 		o.ConcurrencyLimit = DefaultOptions.ConcurrencyLimit
 	}
 
@@ -143,84 +140,62 @@ func (s *Server) Serve(ctx context.Context) error {
 		}
 	}()
 
-	// A new goroutine is spawned for each request we recieve from our transport.
-	// A semaphore is used to restrict the total number of goroutines that may be
-	// running concurrently up to the limit in the server's options.
-	//
-	// Running goroutines are tracked so they can be canceled. They will forcibly
-	// be canceled on exit or whenever our Transport requests an interrupt for a
-	// specific request.
+	type payload struct {
+		ctx    context.Context
+		cancel context.CancelFunc
+
+		header fine.RequestHeader
+		req    fine.Request
+	}
+
 	var (
-		workerSema     *semaphore.Weighted
 		runningWorkers sync.WaitGroup
 
-		workerMut sync.Mutex
-		workers   = make(map[uint64]context.CancelFunc)
+		tasks  sync.Map
+		taskCh = make(chan payload, s.o.ConcurrencyLimit)
 	)
-	if s.o.ConcurrencyLimit > 0 {
-		// Only create a semaphore if we're configured to have a concurrency limit.
-		// Otherwise it's free reign over the number of running goroutines.
-		workerSema = semaphore.NewWeighted(int64(s.o.ConcurrencyLimit))
-	}
-	// scheduleWorker schedules a worker to handle the provided request. It
-	// blocks until the worker is scheduled or if the context given to Serve was
-	// canceled.
-	scheduleWorker := func(header fine.RequestHeader, req fine.Request) {
-		if workerSema != nil {
-			err := workerSema.Acquire(ctx, 1)
-			if err != nil {
-				return
-			}
-		}
 
-		workerMut.Lock()
-		defer workerMut.Unlock()
+	for i := 0; i < s.o.ConcurrencyLimit; i++ {
 		runningWorkers.Add(1)
+		go func() {
+			defer runningWorkers.Done()
 
-		if cancel, exist := workers[header.RequestID]; exist && cancel != nil {
-			level.Warn(s.log).Log("msg", "existing goroutine with same request ID exists; old worker will be canceled")
-			cancel()
-		}
-
-		workerCtx, cancel := context.WithCancel(ctx)
-		workers[header.RequestID] = cancel
-
-		done := func() {
-			// Immediately free up the sempahore and the count of running workers.
-			// These should be done before trying to grab the mutex, otherwise our
-			// defer below will deadlock.
-			workerSema.Release(1)
-			runningWorkers.Done()
-
-			workerMut.Lock()
-			defer workerMut.Unlock()
-			delete(workers, header.RequestID)
-		}
-		// Run the worker.
-		go handleRequest(workerCtx, s, header, req, done)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case task := <-taskCh:
+					handleRequest(task.ctx, s, task.header, task.req, func() {
+						task.cancel()
+						tasks.Delete(task.header.RequestID)
+					})
+				}
+			}
+		}()
 	}
-	// stopWorker stops a running worker. stopped will be true when workerID was
-	// found and it was stopped.
-	stopWorker := func(workerID uint64) (stopped bool) {
-		workerMut.Lock()
-		defer workerMut.Unlock()
 
-		cancel, ok := workers[workerID]
+	scheduleTask := func(header fine.RequestHeader, req fine.Request) {
+		ctx, cancel := context.WithCancel(ctx)
+		task := payload{
+			ctx:    ctx,
+			cancel: cancel,
+			header: header,
+			req:    req,
+		}
+		tasks.Store(header.RequestID, task)
+		taskCh <- task
+	}
+	stopTask := func(reqID uint64) bool {
+		v, ok := tasks.Load(reqID)
 		if !ok {
 			return false
 		}
-		cancel()
-		delete(workers, workerID)
+		v.(payload).cancel()
 		return true
 	}
 	defer func() {
 		// Stop all of our workers.
-		workerMut.Lock()
-		defer workerMut.Unlock()
-		for key, cancel := range workers {
-			cancel()
-			delete(workers, key)
-		}
+		cancel()
 		runningWorkers.Wait()
 	}()
 
@@ -251,7 +226,7 @@ func (s *Server) Serve(ctx context.Context) error {
 				level.Warn(s.log).Log("msg", "ignoring unexpected message sent before fine handshake completed", "op", header.Op, "op_val", int(header.Op))
 				continue
 			}
-			scheduleWorker(header, req)
+			scheduleTask(header, req)
 
 		case fine.OpInit:
 			req, _ := req.(*fine.InitRequest)
@@ -287,7 +262,7 @@ func (s *Server) Serve(ctx context.Context) error {
 			}
 			level.Debug(s.log).Log("msg", "received interrupt request from peer", "id", req.RequestID)
 			respHeader := responseHeader(header, nil)
-			if !stopWorker(req.RequestID) {
+			if !stopTask(req.RequestID) {
 				respHeader.Error = fine.ErrorInvalid
 			}
 			s.sendResponse(respHeader, nil)
@@ -358,14 +333,25 @@ func errorForResponse(err error) fine.Error {
 // processHandshake processes the hanshake sent by the peer. If complete is
 // false, the handshake is expected to be sent again.
 func (s *Server) processHandshake(header fine.RequestHeader, init *fine.InitRequest) (complete bool, err error) {
+	supported := fine.InitAsyncRead |
+		fine.InitBigWrites |
+		fine.InitNoUmask |
+		fine.InitAutoInvalidateCache |
+		fine.InitAsyncDIO |
+		fine.InitWritebackCache |
+		fine.InitParallelDirOps |
+		fine.InitAbortError |
+		fine.InitMaxPages |
+		fine.InitCacheSymlinks
+
 	resp := &fine.InitResponse{
 		EarliestVersion:     fine.MinVersion,
 		MaxReadahead:        init.MaxReadahead,
 		MaxWrite:            fuse.MaxWrite,
-		MaxBackground:       1<<16 - 1,
-		CongestionThreshold: (1<<16 - 1) * 3 / 4,
+		MaxBackground:       uint16(s.o.ConcurrencyLimit),
+		CongestionThreshold: uint16(s.o.ConcurrencyLimit * 3 / 4),
 		MaxPages:            uint16(32*syscall.Getpagesize() + int(fuse.MaxWrite)),
-		Flags:               init.Flags & fine.InitBigWrites & fine.InitAsyncRead & fine.InitAsyncDIO & fine.InitParallelDirOps & fine.InitMaxPages,
+		Flags:               init.Flags & supported,
 	}
 
 	if init.LatestVersion.Major > fine.MinVersion.Major {
