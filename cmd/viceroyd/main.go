@@ -29,12 +29,15 @@ func main() {
 	var (
 		o  = viceroyd.DefaultOptions
 		ll cmdutil.LogLevel
+
+		httpAddr = "127.0.0.1:8080"
 	)
 
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	fs.Var(&ll, "log.level", "Level to display logs at")
 
 	fs.StringVar(&o.ListenAddr, "listen-addr", o.ListenAddr, "listen address for the viceroyd gRPC server")
+	fs.StringVar(&httpAddr, "http-listen-addr", httpAddr, "listen address for the viceroyd HTTP server. Set to an empty string to disable.")
 	fs.StringVar(&o.ProvisionerContainer, "provisioner.container", o.ProvisionerContainer, "Container to use for provisioning")
 	fs.StringVar(&o.ProvisionerContainerName, "provisioner.container-name", o.ProvisionerContainerName, "Container name to create for provisioning")
 
@@ -54,8 +57,8 @@ func main() {
 	var group run.Group
 
 	// Information server worker
-	{
-		lis, err := net.Listen("tcp", "0.0.0.0:8080")
+	if httpAddr != "" {
+		lis, err := net.Listen("tcp", httpAddr)
 		if err != nil {
 			level.Error(l).Log("msg", "failed to create listener for HTTP server", "err", err)
 			os.Exit(1)
@@ -67,6 +70,7 @@ func main() {
 		srv := http.Server{Handler: r}
 
 		group.Add(func() error {
+			level.Info(l).Log("msg", "starting viceroyd http server", "addr", httpAddr)
 			err := srv.Serve(lis)
 			if errors.Is(err, http.ErrServerClosed) {
 				return nil
