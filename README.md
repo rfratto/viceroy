@@ -56,7 +56,7 @@ The following target platforms are currently supported:
 | armv7    |     x |        |         |         |
 | arm64    |     x |      x |         |         |
 
-Support for `darwin` and `freebsd` will come in future commmits.
+Support for `freebsd` will come in a future commmit.
 
 ## Installation
 
