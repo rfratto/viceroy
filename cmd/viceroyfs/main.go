@@ -106,7 +106,6 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 		if err := os.MkdirAll(rootMountPath, 0770); err != nil {
 			return fmt.Errorf("creating root mount")
 		}
-
 		bindMounts := []struct{ From, To string }{
 			{"/", rootMountPath},
 			{"/etc/resolv.conf", filepath.Join(rootMountPath, "/etc/resolv.conf")},
@@ -138,8 +137,9 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 		}
 		srv := grpc.NewServer()
 		grpcfine.RegisterTransportServer(srv, &grpcTransport{
-			log:  l,
-			lazy: &lazyHandler,
+			log:       l,
+			lazy:      &lazyHandler,
+			mountPath: mountPath,
 		})
 
 		workers.Add(1)
@@ -159,7 +159,6 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 		if err := os.MkdirAll(mountPath, 0770); err != nil {
 			return fmt.Errorf("creating mount path")
 		}
-
 		transport, err := fuse.Mount(l, mountPath, fuse.DefaultPermissions())
 		if err != nil {
 			return fmt.Errorf("failed to create mount: %w", err)
@@ -209,8 +208,9 @@ type grpcTransport struct {
 	grpcfine.UnimplementedTransportServer
 	log log.Logger
 
-	lazy *server.LazyHandler
-	set  atomic.Bool
+	lazy      *server.LazyHandler
+	set       atomic.Bool
+	mountPath string
 }
 
 func (t *grpcTransport) Stream(stream grpcfine.Transport_StreamServer) error {
@@ -236,6 +236,36 @@ func (t *grpcTransport) Stream(stream grpcfine.Transport_StreamServer) error {
 	// Wait until the client closes.
 	level.Debug(t.log).Log("msg", "serving gRPC transport")
 	defer level.Debug(t.log).Log("msg", "terminating gRPC transport")
+
+	// Overlay special filesystems on top of FUSE so clang can read from /proc.
+	//
+	// NOTE(rfratto): This is a terrible hack, and I couldn't get clang to work
+	// for Darwin builds until these paths were mounted. We can't read from these
+	// files without CUSE, and it's easier just to overlay them on top.
+	//
+	// Ideally we can find a way to configure clang to not read from /proc so we
+	// can avoid the hacky mounts here.
+	bindMounts := []struct{ From, To string }{
+		{"/dev", filepath.Join(t.mountPath, "/dev")},
+		{"/proc", filepath.Join(t.mountPath, "/proc")},
+		{"/sys", filepath.Join(t.mountPath, "/sys")},
+	}
+	for _, bm := range bindMounts {
+		err := syscall.Mount(bm.From, bm.To, "", syscall.MS_BIND, "")
+		if err != nil {
+			return fmt.Errorf("creating %q mount: %w", bm.To, err)
+		}
+	}
+	defer func() {
+		for i := len(bindMounts) - 1; i >= 0; i-- {
+			bm := bindMounts[i]
+			err := syscall.Unmount(bm.To, syscall.MNT_DETACH)
+			if err != nil {
+				level.Warn(t.log).Log("msg", "failed to unmount", "mount", bm.To, "err", err)
+			}
+		}
+	}()
+
 	wait()
 	return nil
 }

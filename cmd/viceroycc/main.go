@@ -29,6 +29,8 @@ func run() (statusCode int, err error) {
 		Request: &viceroypb.CommandRequest{
 			Command: "viceroycc",
 			Args:    os.Args[1:],
+			// TODO(rfratto): should this override the entire environment or be merged?
+			// What should we pass here that's relevant?
 			Environ: os.Environ(),
 			Wd: func() string {
 				wd, _ := os.Getwd()

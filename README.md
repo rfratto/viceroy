@@ -25,7 +25,6 @@ from a 10 minute build to an 80 second one.
 
 ## TODO
 
-- [ ] Support for crosscompiling to darwin
 - [ ] Support for crosscompiling to freebsd
 - [ ] Worker container images on Dockerhub
 - [ ] Installers (Homebrew, etc.)
@@ -50,12 +49,12 @@ The following target platforms are currently supported:
 
 |          | linux | darwin | freebsd | windows |
 | -------- | ----- | ------ | ------- | ------- |
-| amd64    |     x |        |         |       x |
+| amd64    |     x |      x |         |       x |
 | 386      |     x |        |         |       x |
 | armv5    |     x |        |         |         |
 | armv6    |     x |        |         |         |
 | armv7    |     x |        |         |         |
-| arm64    |     x |        |         |         |
+| arm64    |     x |      x |         |         |
 
 Support for `darwin` and `freebsd` will come in future commmits.
 
@@ -72,7 +71,7 @@ binaries.
 Until pushed images are available on Dockerhub, you must also run
 `make FULL_BASE_IMAGE=1 container` to build the worker container locally.
 
-`viceroyd` may be run with `viceroyd -listen-addr tcp://0.0.0.0:12194`. It is
+`viceroyd` may be run with `viceroyd -listen-addr tcp://127.0.0.1:12194`. It is
 currently left as an exercise to the reader for how to configure this as a
 permanent system service.
 

@@ -236,6 +236,24 @@ func TestRename(t *testing.T) {
 	require.Equal(t, "testing", execResult.Stdout)
 }
 
+// TestProcAccess ensures that /proc can be accessed from the mount.
+func TestProcAccess(t *testing.T) {
+	l := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+	l = log.With(l, "test", t.Name())
+
+	cc, exec := runContainer(t)
+	newPassthroughServ(t, l, cc)
+
+	level.Debug(l).Log("msg", "executing test script")
+
+	expectResult, err := exec("bash", "-c", "cat /proc/1/cmdline")
+	require.NoError(t, err)
+	actualResult, err := exec("bash", "-c", "cat /mnt/voverlay/proc/1/cmdline")
+	require.NoError(t, err)
+
+	require.Equal(t, expectResult.Stdout, actualResult.Stdout)
+}
+
 // runContainer runs the viceroyworkerd container and returns a client connection once
 // it's up and running.
 func runContainer(t *testing.T) (*grpc.ClientConn, execFunc) {

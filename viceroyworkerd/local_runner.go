@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -60,6 +61,7 @@ func (l *localRunner) CreateCommand(_ context.Context, req *pb.CommandRequest) (
 
 	cmd := exec.CommandContext(ctx, clangPath, req.GetArgs()...)
 	cmd.Env = append(req.GetEnviron(), "CC=clang", "CXX=clang") // TODO(rfratto): this should be sent by the client or handled by a wrapper
+	cmd.Env = append(cmd.Env, "PATH="+os.Getenv("PATH"))        // Don't let PATH override local environment
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Dir = req.GetWd()

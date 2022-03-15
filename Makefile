@@ -22,7 +22,7 @@ container/base:
 	docker build -t $(BASE_CONTAINER_NAME) -f container/base-linuxonly/Dockerfile container/base-linuxonly
 else
 container/base:
-	docker build -t $(BASE_CONTAINER_NAME) -f container/base-full/Dockerfile container/base-full
+	docker build -t $(BASE_CONTAINER_NAME) --build-arg OSXCROSS_SDK_URL=${OSXCROSS_SDK_URL} -f container/base-full/Dockerfile container/base-full
 endif
 
 else

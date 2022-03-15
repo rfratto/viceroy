@@ -13,8 +13,11 @@ before the worker container itself. This base image can take one of two forms:
 * `base-linuxonly`: Cross-compilers for various Linux architectures.
 * `base-full`: Cross-compilers for all supported operating systems.
 
-To build the worker container with the `base-linuxonly` base image, run
-`make container` from the root of the repository.
+To build the worker container with the `base-linuxonly` base image, run `make
+container` from the root of the repository.
 
-To build the worker container with the `base-full` base image, run
-`make FULL_BASE_IMAGE=1 container` from the root of the repository.
+To build the worker container with the `base-full` base image, run `make
+FULL_BASE_IMAGE=1 container` from the root of the repository. You will need an
+`OSXCROSS_SDK_URL` environment environment variable which refers to a file or
+URL containing the packaged osxcross SDK. Refer to the
+[OSXCross instructions][] for full details.
