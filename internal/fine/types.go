@@ -84,7 +84,7 @@ type (
 		HardLinks  uint32      // Number of hard links to the file (usually 1)
 		UID        uint32      // Owner UID
 		GID        uint32      // Owner GID
-		DeviceID   uint32      // Device ID (if special file)
+		RDev       uint32      // Device ID (if special file)
 		BlockSize  uint32      // Block size for filesystem i/O
 	}
 

@@ -33,8 +33,8 @@ func attrFromInfo(n *passthroughNode, fi fs.FileInfo) fine.Attrib {
 		attr.HardLinks = uint32(s.Nlink)
 		attr.UID = s.Uid
 		attr.GID = s.Gid
-		attr.DeviceID = uint32(s.Dev)
-		attr.BlockSize = uint32(s.Blocks)
+		attr.RDev = uint32(s.Rdev)
+		attr.BlockSize = uint32(s.Blksize)
 	}
 	return attr
 }

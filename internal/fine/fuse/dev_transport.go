@@ -854,7 +854,7 @@ func toRawAttr(in fine.Attrib) rawAttr {
 		Nlink:     in.HardLinks,
 		UID:       in.UID,
 		GID:       in.GID,
-		RDev:      in.DeviceID,
+		RDev:      in.RDev,
 		BlockSize: in.BlockSize,
 	}
 }

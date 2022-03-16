@@ -10,10 +10,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
 	_ "net/http/pprof" // anonymous import to get the pprof handler registered
@@ -31,10 +30,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-const (
-	rootMountPath = "/mnt/root"
 )
 
 func main() {
@@ -74,7 +69,15 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 	var workers sync.WaitGroup
 	defer workers.Wait()
 
-	var lazyHandler server.LazyHandler
+	// Create our overlay filesystem. The lower filesystem will be lazily set
+	// over gRPC.
+	//
+	// NOTE(rfratto): It's only safe for the lower filesystem to be lazily
+	// loaded. Using a lazy handler in front of the overlay risks fuse ID
+	// collision.
+	var lazyLower server.LazyHandler
+	upper := server.Passthrough(nil, "/")
+	overlay := voverlay.New(l, upper, &lazyLower)
 
 	// Information server worker
 	{
@@ -101,34 +104,6 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 		defer srv.Close()
 	}
 
-	// Root mount
-	{
-		if err := os.MkdirAll(rootMountPath, 0770); err != nil {
-			return fmt.Errorf("creating root mount")
-		}
-		bindMounts := []struct{ From, To string }{
-			{"/", rootMountPath},
-			{"/etc/resolv.conf", filepath.Join(rootMountPath, "/etc/resolv.conf")},
-			{"/etc/hostname", filepath.Join(rootMountPath, "/etc/hostname")},
-			{"/etc/hosts", filepath.Join(rootMountPath, "/etc/hosts")},
-		}
-		for _, bm := range bindMounts {
-			err := syscall.Mount(bm.From, bm.To, "", syscall.MS_BIND, "")
-			if err != nil {
-				return fmt.Errorf("creating %q mount: %w", bm.To, err)
-			}
-		}
-		defer func() {
-			for i := len(bindMounts) - 1; i >= 0; i-- {
-				bm := bindMounts[i]
-				err := syscall.Unmount(bm.To, syscall.MNT_DETACH)
-				if err != nil {
-					level.Warn(l).Log("msg", "failed to unmount", "mount", bm.To, "err", err)
-				}
-			}
-		}()
-	}
-
 	// gRPC worker
 	{
 		lis, err := net.Listen("tcp", grpcAddr)
@@ -138,7 +113,7 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 		srv := grpc.NewServer()
 		grpcfine.RegisterTransportServer(srv, &grpcTransport{
 			log:       l,
-			lazy:      &lazyHandler,
+			lazy:      &lazyLower,
 			mountPath: mountPath,
 		})
 
@@ -172,7 +147,7 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 			ConcurrencyLimit: server.DefaultOptions.ConcurrencyLimit,
 			RequestTimeout:   15 * time.Second,
 			Transport:        transport,
-			Handler:          &lazyHandler,
+			Handler:          overlay,
 			Middleware:       middleware,
 		})
 		if err != nil {
@@ -186,6 +161,31 @@ func run(l log.Logger, grpcAddr string, mountPath string) error {
 			level.Debug(l).Log("msg", "serving FUSE traffic", "dir", mountPath)
 			if err := srv.Serve(ctx); err != nil {
 				level.Error(l).Log("msg", "fs exited with error", "err", err)
+			}
+		}()
+
+		err = runScript(ctx, fmt.Sprintf(` 
+		mount --bind /etc/resolv.conf %[1]s/etc/resolv.conf -o nonempty
+		mount --bind /etc/hostname    %[1]s/etc/hostname    -o nonempty
+		mount --bind /etc/hosts       %[1]s/etc/hosts       -o nonempty
+		mount --bind /dev             %[1]s/dev             -o nonempty
+		mount --bind /proc            %[1]s/proc            -o nonempty
+		mount --bind /sys             %[1]s/sys             -o nonempty
+		`, mountPath))
+		if err != nil {
+			return err
+		}
+		defer func() {
+			err = runScript(ctx, fmt.Sprintf(`
+			umount -l %[1]s/etc/resolv.conf
+			umount -l %[1]s/etc/hostname
+			umount -l %[1]s/etc/hosts
+			umount -l %[1]s/dev
+			umount -l %[1]s/proc
+			umount -l %[1]s/sys
+			`, mountPath))
+			if err != nil {
+				level.Warn(l).Log("msg", "failed while unmounting special directories", "err", err)
 			}
 		}()
 	}
@@ -226,46 +226,20 @@ func (t *grpcTransport) Stream(stream grpcfine.Transport_StreamServer) error {
 	}
 	defer clientHandler.Close()
 
-	upper := server.Passthrough(nil, rootMountPath)
-	overlay := voverlay.New(t.log, upper, clientHandler)
-
-	if err := t.lazy.SetHandler(stream.Context(), overlay); err != nil {
+	if err := t.lazy.SetHandler(stream.Context(), clientHandler); err != nil {
 		return err
 	}
 
 	// Wait until the client closes.
 	level.Debug(t.log).Log("msg", "serving gRPC transport")
 	defer level.Debug(t.log).Log("msg", "terminating gRPC transport")
-
-	// Overlay special filesystems on top of FUSE so clang can read from /proc.
-	//
-	// NOTE(rfratto): This is a terrible hack, and I couldn't get clang to work
-	// for Darwin builds until these paths were mounted. We can't read from these
-	// files without CUSE, and it's easier just to overlay them on top.
-	//
-	// Ideally we can find a way to configure clang to not read from /proc so we
-	// can avoid the hacky mounts here.
-	bindMounts := []struct{ From, To string }{
-		{"/dev", filepath.Join(t.mountPath, "/dev")},
-		{"/proc", filepath.Join(t.mountPath, "/proc")},
-		{"/sys", filepath.Join(t.mountPath, "/sys")},
-	}
-	for _, bm := range bindMounts {
-		err := syscall.Mount(bm.From, bm.To, "", syscall.MS_BIND, "")
-		if err != nil {
-			return fmt.Errorf("creating %q mount: %w", bm.To, err)
-		}
-	}
-	defer func() {
-		for i := len(bindMounts) - 1; i >= 0; i-- {
-			bm := bindMounts[i]
-			err := syscall.Unmount(bm.To, syscall.MNT_DETACH)
-			if err != nil {
-				level.Warn(t.log).Log("msg", "failed to unmount", "mount", bm.To, "err", err)
-			}
-		}
-	}()
-
 	wait()
 	return nil
+}
+
+func runScript(ctx context.Context, script string) error {
+	cmd := exec.CommandContext(ctx, "bash", "-c", script)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
