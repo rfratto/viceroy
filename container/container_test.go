@@ -338,12 +338,3 @@ type execFunc = func(cmd ...string) (*execResult, error)
 type execResult struct {
 	Stdout, Stderr string
 }
-
-func execPrint(res *execResult, err error) {
-	if err != nil {
-		fmt.Println(err)
-	} else if res != nil {
-		fmt.Println(res.Stdout)
-		fmt.Println(res.Stderr)
-	}
-}
