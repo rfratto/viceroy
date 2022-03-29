@@ -55,6 +55,7 @@ The following target platforms are currently supported:
 | armv6    |     x |        |         |         |
 | armv7    |     x |        |         |         |
 | arm64    |     x |      x |         |         |
+| ppc64le  |     x |        |         |         |
 
 Support for `freebsd` will come in a future commmit.
 

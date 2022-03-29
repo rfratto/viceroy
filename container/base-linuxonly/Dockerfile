@@ -7,6 +7,7 @@ RUN  export HOST=$(dpkg --print-architecture) \
   && dpkg --add-architecture armel    \
   && dpkg --add-architecture armhf    \
   && dpkg --add-architecture arm64    \
+  && dpkg --add-architecture ppc64el  \
   && apt-get update                   \
   && apt-get install -yq              \
         clang:$HOST                   \
@@ -15,6 +16,7 @@ RUN  export HOST=$(dpkg --print-architecture) \
         crossbuild-essential-armel    \
         crossbuild-essential-armhf    \
         crossbuild-essential-arm64    \
+        crossbuild-essential-ppc64el  \
         libssl-dev                    \
         openssl                       \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
