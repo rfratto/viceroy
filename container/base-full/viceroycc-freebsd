@@ -2,20 +2,20 @@
 FOUND_CC=""
 CC_EXTRA=""
 
-echo "fatal: freebsd support not yet implemented" >&2
-exit 1
-
 case "$VICEROYARCH" in
   amd64)
-    CC_EXTRA="-target x86_64-pc-freebsd11 --sysroot=/usr/freebsd/x86_64-pc-freebsd11"
+    CC_EXTRA="-B/usr/freebsd/bin -target x86_64-pc-freebsd12 --sysroot=/usr/freebsd/x86_64-pc-freebsd12"
     ;;
   386)
-    CC_EXTRA="-target i386-pc-freebsd11 --sysroot=/usr/freebsd/i386-pc-freebsd11 -v"
+    CC_EXTRA="-B/usr/freebsd/bin -target i386-pc-freebsd12 --sysroot=/usr/freebsd/i386-pc-freebsd12"
+    ;;
+  arm64)
+    CC_EXTRA="-B/usr/freebsd/bin -target aarch64-pc-freebsd12 --sysroot=/usr/freebsd/aarch64-pc-freebsd12"
     ;;
   *)
-    echo "fatal: unsupported \$VICEROYARCH $VICEROYARCH for freebsd. Must be one of: amd64, 386" >&2
+    echo "fatal: unsupported \$VICEROYARCH $VICEROYARCH for freebsd. Must be one of: amd64, 386, arm64" >&2
     exit 1
     ;;
 esac
 
-exec clang "$CC_EXTRA $@"
+exec clang $CC_EXTRA "$@"

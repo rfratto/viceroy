@@ -19,13 +19,12 @@ from a 10 minute build to an 80 second one.
 ## Goals
 
 * Improve iteration speed of Go projects that need Cgo
-* Compile C and C++ code for many OS and architectures
+* Compile C and C++ code for many common OS and architectures
 * Install C dependencies in build workers
 * Usable in standalone mode inside of Docker/Dockerfiles
 
 ## TODO
 
-- [ ] Support for crosscompiling to freebsd
 - [ ] Worker container images on Dockerhub
 - [ ] Installers (Homebrew, etc.)
 - [ ] Managing packages installed on workers
@@ -49,15 +48,17 @@ The following target platforms are currently supported:
 
 |          | linux | darwin | freebsd | windows |
 | -------- | ----- | ------ | ------- | ------- |
-| amd64    |     x |      x |         |       x |
-| 386      |     x |        |         |       x |
+| amd64    |     x |      x |       x |       x |
+| 386      |     x |        |       x |       x |
 | armv5    |     x |        |         |         |
 | armv6    |     x |        |         |         |
 | armv7    |     x |        |         |         |
-| arm64    |     x |      x |         |         |
+| arm64    |     x |      x |       x |         |
 | ppc64le  |     x |        |         |         |
 
-Support for `freebsd` will come in a future commmit.
+Builds for Darwin use the macOS 11.1 SDK.
+
+Builds for FreeBSD use FreeBSD 12.3.
 
 ## Installation
 
@@ -69,8 +70,10 @@ eventually be made available as the project matures.
 Go 1.17 is required to install from source. Run `make install` to install the
 binaries.
 
-Until pushed images are available on Dockerhub, you must also run
-`make FULL_BASE_IMAGE=1 container` to build the worker container locally.
+Until pushed images are available on Dockerhub, you must also run `make
+FULL_BASE_IMAGE=1 container` to build the worker container locally. Note that
+this will take a significant amount of time to complete as toolchains are
+built.
 
 `viceroyd` may be run with `viceroyd -listen-addr tcp://127.0.0.1:12194`. It is
 currently left as an exercise to the reader for how to configure this as a
