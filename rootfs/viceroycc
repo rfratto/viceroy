@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 #
-# This is the viceroycc bash script installed on viceroy workers, which wraps
-# around a cross-compiler toolchain (e.g., gcc or clang). It fills out
+# This is the viceroycc bash script installed on Viceroy containers, which
+# wraps around a cross-compiler toolchain (e.g., gcc or clang). It fills out
 # appropriate values for VICEROYOS, VICEROYARM, and VICEROYARCH, and invokes
 # the appropriate toolchain if it's installed. There is expected to be one
 # viceroycc-$VICEROYOS binary for every supported OS.
-#
-# NOTE: environment variables here come from the host machine and not the
-# worker.
 
 VICEROYOS=${VICEROYOS:-$GOOS}
 if [ -z "$VICEROYOS" ]; then
