@@ -20,5 +20,7 @@ jobs:
       - name: Rename container
         run: docker tag rfratto/viceroy:latest rfratto/viceroy:${{ github.ref_name }}
       - name: Push container
-        run: docker push rfratto/viceroy:latest rfratto/viceroy:${{ github.ref_name }}
+        run: |
+          docker push rfratto/viceroy:${{ github.ref_name }}
+          docker push rfratto/viceroy:latest
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
