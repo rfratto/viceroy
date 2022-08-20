@@ -13,6 +13,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Create buildx driver
+        run: |
+          docker buildx create --name viceroy-builder --driver docker-container --use || docker buildx use viceroy-builder
       - name: Bake AMD64 container
         run: |
           docker buildx build \
@@ -35,6 +38,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Create buildx driver
+        run: |
+          docker buildx create --name viceroy-builder --driver docker-container --use || docker buildx use viceroy-builder
       - name: Bake ARM64 container
         run: |
           docker buildx build \
