@@ -26,43 +26,49 @@ RUN  export HOST=$(dpkg --print-architecture) \
 FROM environment as freebsd
 
 RUN  export HOST=$(dpkg --print-architecture) \
-  && apt-get update      \
-  && apt-get install -yq \
+  && apt-get update            \
+  && apt-get install -yq       \
+        curl:$HOST             \
         libarchive-tools:$HOST \
-        xz-utils:$HOST   \
+        xz-utils:$HOST         \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ENV FREEBSD_AMD64_URL=https://download.freebsd.org/releases/amd64/amd64/ISO-IMAGES/12.3/FreeBSD-12.3-RELEASE-amd64-dvd1.iso.xz \
      FREEBSD_I386_URL=https://download.freebsd.org/releases/i386/i386/ISO-IMAGES/12.3/FreeBSD-12.3-RELEASE-i386-dvd1.iso.xz \
     FREEBSD_ARM64_URL=https://download.freebsd.org/releases/arm64/aarch64/ISO-IMAGES/12.3/FreeBSD-12.3-RELEASE-arm64-aarch64-dvd1.iso.xz
 
-ADD ${FREEBSD_AMD64_URL} /tmp/freebsd-amd64/dvd1.iso.xz
-ADD ${FREEBSD_I386_URL}  /tmp/freebsd-i386/dvd1.iso.xz
-ADD ${FREEBSD_ARM64_URL} /tmp/freebsd-arm64/dvd1.iso.xz
-
 # Unpack amd64 toolchain /usr/freebsd/x86_64-pc-freebsd12
-RUN mkdir -p /usr/freebsd/x86_64-pc-freebsd12   \
- && cd /tmp/freebsd-amd64                       \
- && xz -d dvd1.iso.xz                           \
- && bsdtar -xf dvd1.iso lib usr/include usr/lib \
- && mv lib /usr/freebsd/x86_64-pc-freebsd12/    \
- && mv usr /usr/freebsd/x86_64-pc-freebsd12/
+RUN mkdir -p /tmp/freebsd-amd64                                         \
+ && curl -fsSL "${FREEBSD_AMD64_URL}" -o /tmp/freebsd-amd64/dvd1.iso.xz \
+ && mkdir -p /usr/freebsd/x86_64-pc-freebsd12                           \
+ && cd /tmp/freebsd-amd64                                               \
+ && xz -d dvd1.iso.xz                                                   \
+ && bsdtar -xf dvd1.iso lib usr/include usr/lib                         \
+ && mv lib /usr/freebsd/x86_64-pc-freebsd12/                            \
+ && mv usr /usr/freebsd/x86_64-pc-freebsd12/                            \
+ && rm -rf /tmp/freebsd-amd64
 
 # Unpack i386 toolchain to /usr/freebsd/i386-pc-freebsd12
-RUN mkdir -p /usr/freebsd/i386-pc-freebsd12     \
- && cd /tmp/freebsd-i386                        \
- && xz -d dvd1.iso.xz                           \
- && bsdtar -xf dvd1.iso lib usr/include usr/lib \
- && mv lib /usr/freebsd/i386-pc-freebsd12/      \
- && mv usr /usr/freebsd/i386-pc-freebsd12/
+RUN mkdir -p /tmp/freebsd-i386                                         \
+ && curl -fsSL "${FREEBSD_I386_URL}" -o /tmp/freebsd-i386/dvd1.iso.xz  \
+ && mkdir -p /usr/freebsd/i386-pc-freebsd12                            \
+ && cd /tmp/freebsd-i386                                               \
+ && xz -d dvd1.iso.xz                                                  \
+ && bsdtar -xf dvd1.iso lib usr/include usr/lib                        \
+ && mv lib /usr/freebsd/i386-pc-freebsd12/                             \
+ && mv usr /usr/freebsd/i386-pc-freebsd12/                             \
+ && rm -rf /tmp/freebsd-i386
 
 # Unpack arm64 toolchain to /usr/freebsd/aarch64-pc-freebsd12
-RUN mkdir -p /usr/freebsd/aarch64-pc-freebsd12  \
- && cd /tmp/freebsd-arm64                       \
- && xz -d dvd1.iso.xz                           \
- && bsdtar -xf dvd1.iso lib usr/include usr/lib \
- && mv lib /usr/freebsd/aarch64-pc-freebsd12/   \
- && mv usr /usr/freebsd/aarch64-pc-freebsd12/
+RUN mkdir -p /tmp/freebsd-arm64                                         \
+ && curl -fsSL "${FREEBSD_ARM64_URL}" -o /tmp/freebsd-arm64/dvd1.iso.xz \
+ && mkdir -p /usr/freebsd/aarch64-pc-freebsd12                          \
+ && cd /tmp/freebsd-arm64                                               \
+ && xz -d dvd1.iso.xz                                                   \
+ && bsdtar -xf dvd1.iso lib usr/include usr/lib                         \
+ && mv lib /usr/freebsd/aarch64-pc-freebsd12/                           \
+ && mv usr /usr/freebsd/aarch64-pc-freebsd12/                           \
+ && rm -rf /tmp/freebsd-arm64
 
 # Create binutils to use for building FreeBSD targets. Specifically, we do this
 # to pass to the -B flag of clang to ensure that builds for FreeBSD always use

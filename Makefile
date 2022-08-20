@@ -7,7 +7,3 @@ all: build
 .PHONY: build
 build:
 	docker build -t ${CONTAINER_NAME} --build-arg OSXCROSS_SDK_URL=${OSXCROSS_SDK_URL} .
-
-.PHONY: push
-push:
-	docker push ${CONTAINER_NAME}

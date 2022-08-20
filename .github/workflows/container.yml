@@ -1,26 +1,82 @@
+# We need to use two separate build hosts for each architecture because of how
+# slow everything is here. Unfortunately, that means we lose the tooling which
+# allows us to push everything as one single manifest.
+#
+# For now, we're forced to push per-architecture images and then create a
+# manifest from them. This can be replaced once the Docker CLI supports pushing
+# images by reference instead of by tag, though it could also be done by
+# creating new tooling which interacts with the Docker registry API directly.
+
 name: Container
 on:
-  pull_request:
-    branches:
-    - main
   push:
     tags:
       - 'v*'
 jobs:
-  build:
-    name: Build Container
+  build_amd64:
+    name: Build AMD64 Container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create buildx driver
+        run: |
+          docker buildx create --name viceroy-builder --driver docker-container || true
+      - name: Build container
+        run: |
+          docker buildx build \
+            --builder=viceroy-builder \
+            -t rfratto/viceroy:latest-amd64 \
+            --platform=linux/amd64 \
+            --build-arg OSXCROSS_SDK_URL=${{ secrets.OSXCROSS_SDK_URL }} \
+            --pull \
+            --load \
+            .
+      - name: Login to Docker Hub
+        run: docker login -u rfratto -p "${{ secrets.DOCKER_PASS }}"
+      - name: Push container
+        run: |
+          docker tag rfratto/viceroy:latest-amd64 rfratto/viceroy:${{ github.ref_name }}-amd64
+          docker push rfratto/viceroy:latest-amd64
+          docker push rfratto/viceroy:${{ github.ref_name }}-amd64
+
+  build_arm64:
+    name: Build ARM64 Container
+    runs-on: [Linux, ARM64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create buildx driver
+        run: |
+          docker buildx create --name viceroy-builder --driver docker-container || true
+      - name: Build container
+        run: |
+          docker buildx build \
+            --builder=viceroy-builder \
+            -t rfratto/viceroy:latest-arm64 \
+            --platform=linux/arm64 \
+            --build-arg OSXCROSS_SDK_URL=${{ secrets.OSXCROSS_SDK_URL }} \
+            --pull \
+            --load \
+            .
+      - name: Login to Docker Hub
+        run: docker login -u rfratto -p "${{ secrets.DOCKER_PASS }}"
+      - name: Push container
+        run: |
+          docker tag rfratto/viceroy:latest-arm64 rfratto/viceroy:${{ github.ref_name }}-arm64
+          docker push rfratto/viceroy:latest-arm64
+          docker push rfratto/viceroy:${{ github.ref_name }}-arm64
+
+  bundle-manifests:
+    name: Bundle manifests
+    needs: [build_amd64, build_arm64]
     runs-on: ubuntu-latest
     steps:
       - name: Login to Docker Hub
         run: docker login -u rfratto -p "${{ secrets.DOCKER_PASS }}"
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Make container
-        run: OSXCROSS_SDK_URL=${{ secrets.OSXCROSS_SDK_URL }} make build
-      - name: Rename container
-        run: docker tag rfratto/viceroy:latest rfratto/viceroy:${{ github.ref_name }}
-      - name: Push container
+      - name: Create manifests
         run: |
-          docker push rfratto/viceroy:${{ github.ref_name }}
-          docker push rfratto/viceroy:latest
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+          docker buildx imagetools create \
+            -t rfratto/viceroy:${{ github.ref_name }} -t rfratto/viceroy:latest \
+            rfratto/viceroy:${{ github.ref_name }}-amd64 \
+            rfratto/viceroy:${{ github.ref_name }}-arm64
