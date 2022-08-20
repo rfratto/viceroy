@@ -40,8 +40,19 @@ The following target platforms are currently supported:
 3. Set `VICEROYOS`, `VICEROYARCH`, and `VICEROYARM` as appropriate.
 4. Compile!
 
+## Building locally
+
+The Viceroy image can be built for your local platform by running `make build`.
+To build both arm64 and amd64 images, run `make bake`.
+
+The `OSXCROSS_SDK_URL` environment variable should be set to a URL or path on
+the host machine to a .tar.xz of an [osxcross][] packaged macOS 11.1 SDK.
+
+[osxcross]: https://github.com/tpoechtrager/osxcross
+
 ## Legal note
 
 OSX/Darwin/Apple builds:
 **[Please ensure you have read and understood the Xcode license
    terms before continuing.](https://www.apple.com/legal/sla/docs/xcode.pdf)**
+
