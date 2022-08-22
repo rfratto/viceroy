@@ -3,7 +3,7 @@ FOUND_CC=""
 
 case "$VICEROYARCH" in
   amd64)
-    CC="x86_64-apple-darwin20.2-clang"
+    FOUND_CC="x86_64-apple-darwin20.2-clang"
     ;;
   arm64)
     FOUND_CC="arm64-apple-darwin20.2-clang"
