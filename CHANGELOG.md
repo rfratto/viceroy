@@ -1,3 +1,10 @@
+v0.2.1 (2022-08-22)
+-------------------
+
+### Bug fixes
+
+* Invocations of viceroycc for amd64 Darwin will now work properly.
+
 v0.2.0 (2022-08-20)
 -------------------
 
