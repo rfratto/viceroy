@@ -32,6 +32,7 @@ The following target platforms are currently supported:
 | armv7    |     x |        |         |         |
 | arm64    |     x |      x |       x |         |
 | ppc64le  |     x |        |         |         |
+| s390x    |     x |        |         |         |
 
 ## Usage
 

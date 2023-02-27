@@ -7,8 +7,9 @@ case "$VICEROYARCH" in
   arm)      TOOLCHAIN_PREFIX="arm-linux-gnueabi-" ;;
   arm64)    TOOLCHAIN_PREFIX="aarch64-linux-gnu-" ;;
   ppc64le)  TOOLCHAIN_PREFIX="powerpc64le-linux-gnu-" ;;
+  s390x)    TOOLCHAIN_PREFIX="s390x-linux-gnu-" ;;
   *)
-    echo "fatal: unsupported \$VICEROYARCH $VICEROYARCH for linux. Must be one of: amd64, 386, arm, arm64, ppc64le" >&2
+    echo "fatal: unsupported \$VICEROYARCH $VICEROYARCH for linux. Must be one of: amd64, 386, arm, arm64, ppc64le, s390x" >&2
     exit 1
     ;;
 esac
