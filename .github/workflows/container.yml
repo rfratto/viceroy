@@ -39,9 +39,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Create buildx driver
-        run: |
-          docker buildx create --name viceroy-builder --driver docker-container || true
       - name: Build container
         run: |
           docker build \
