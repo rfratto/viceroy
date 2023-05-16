@@ -1,3 +1,11 @@
+v0.4.0 (2023-05-17)
+-------------------
+
+### Enhancements
+
+* Update macOS SDK to macOS 12.3.
+* Update FreeBSD SDK to 12.4.
+
 v0.3.0 (2023-02-27)
 -------------------
 
