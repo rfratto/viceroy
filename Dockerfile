@@ -35,9 +35,9 @@ RUN  export HOST=$(dpkg --print-architecture) \
         xz-utils:$HOST         \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ENV FREEBSD_AMD64_URL=https://download.freebsd.org/releases/amd64/amd64/ISO-IMAGES/12.3/FreeBSD-12.3-RELEASE-amd64-dvd1.iso.xz \
-     FREEBSD_I386_URL=https://download.freebsd.org/releases/i386/i386/ISO-IMAGES/12.3/FreeBSD-12.3-RELEASE-i386-dvd1.iso.xz \
-    FREEBSD_ARM64_URL=https://download.freebsd.org/releases/arm64/aarch64/ISO-IMAGES/12.3/FreeBSD-12.3-RELEASE-arm64-aarch64-dvd1.iso.xz
+ENV FREEBSD_AMD64_URL=https://download.freebsd.org/releases/amd64/amd64/ISO-IMAGES/12.4/FreeBSD-12.4-RELEASE-amd64-dvd1.iso.xz \
+     FREEBSD_I386_URL=https://download.freebsd.org/releases/i386/i386/ISO-IMAGES/12.4/FreeBSD-12.4-RELEASE-i386-dvd1.iso.xz \
+    FREEBSD_ARM64_URL=https://download.freebsd.org/releases/arm64/aarch64/ISO-IMAGES/12.4/FreeBSD-12.4-RELEASE-arm64-aarch64-dvd1.iso.xz
 
 # Unpack amd64 toolchain /usr/freebsd/x86_64-pc-freebsd12
 RUN mkdir -p /tmp/freebsd-amd64                                         \
@@ -105,8 +105,8 @@ RUN  export HOST=$(dpkg --print-architecture) \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ARG OSXCROSS_SDK_URL
-ENV OSXCROSS_REV=be2b79f444aa0b43b8695a4fb7b920bf49ecc01c \
-    OSXCROSS_SDK_NAME=MacOSX11.1.sdk.tar.xz
+ENV OSXCROSS_REV=50e86ebca7d14372febd0af8cd098705049161b9 \
+    OSXCROSS_SDK_NAME=MacOSX12.3.sdk.tar.xz
 
 ADD ${OSXCROSS_SDK_URL} /tmp/${OSXCROSS_SDK_NAME}
 
