@@ -1,0 +1,18 @@
+name: Integration tests
+on:
+  pull_request: {}
+jobs:
+  integration-test:
+    runs-on: [self-hosted, ubuntu-latest, amd64]
+    steps:
+      - name: Get Token
+        id: get_workflow_token
+        uses: peter-murray/workflow-application-token-action@v3
+        with:
+          application_id: ${{ secrets.APPLICATION_ID }}
+          application_private_key: ${{ secrets.APPLICATION_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ steps.get_workflow_token.outputs.token }}
