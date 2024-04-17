@@ -1,0 +1,25 @@
+name: Dispatch slash command
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Token
+        id: get_workflow_token
+        uses: peter-murray/workflow-application-token-action@v3
+        with:
+          application_id: ${{ secrets.APPLICATION_ID }}
+          application_private_key: ${{ secrets.APPLICATION_PRIVATE_KEY }}
+
+      - name: Slash Command Dispatch
+        uses: peter-evans/slash-command-dispatch@v4
+        with:
+          token: ${{ steps.get_workflow_token.outputs.token }}
+          reaction-token: ${{ steps.get_workflow_token.outputs.token }}
+          permission: write
+          commands: |
+            integration-test
