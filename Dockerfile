@@ -35,41 +35,41 @@ RUN  export HOST=$(dpkg --print-architecture) \
         xz-utils:$HOST         \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ENV FREEBSD_AMD64_URL=https://download.freebsd.org/releases/amd64/amd64/ISO-IMAGES/12.4/FreeBSD-12.4-RELEASE-amd64-dvd1.iso.xz \
-     FREEBSD_I386_URL=https://download.freebsd.org/releases/i386/i386/ISO-IMAGES/12.4/FreeBSD-12.4-RELEASE-i386-dvd1.iso.xz \
-    FREEBSD_ARM64_URL=https://download.freebsd.org/releases/arm64/aarch64/ISO-IMAGES/12.4/FreeBSD-12.4-RELEASE-arm64-aarch64-dvd1.iso.xz
+ENV FREEBSD_AMD64_URL=https://download.freebsd.org/releases/amd64/amd64/ISO-IMAGES/14.0/FreeBSD-14.0-RELEASE-amd64-dvd1.iso.xz \
+     FREEBSD_I386_URL=https://download.freebsd.org/releases/i386/i386/ISO-IMAGES/14.0/FreeBSD-14.0-RELEASE-i386-dvd1.iso.xz \
+    FREEBSD_ARM64_URL=https://download.freebsd.org/releases/arm64/aarch64/ISO-IMAGES/14.0/FreeBSD-14.0-RELEASE-arm64-aarch64-dvd1.iso.xz
 
-# Unpack amd64 toolchain /usr/freebsd/x86_64-pc-freebsd12
+# Unpack amd64 toolchain /usr/freebsd/x86_64-pc-freebsd14
 RUN mkdir -p /tmp/freebsd-amd64                                         \
  && curl -fsSL "${FREEBSD_AMD64_URL}" -o /tmp/freebsd-amd64/dvd1.iso.xz \
- && mkdir -p /usr/freebsd/x86_64-pc-freebsd12                           \
+ && mkdir -p /usr/freebsd/x86_64-pc-freebsd14                           \
  && cd /tmp/freebsd-amd64                                               \
  && xz -d dvd1.iso.xz                                                   \
  && bsdtar -xf dvd1.iso lib usr/include usr/lib                         \
- && mv lib /usr/freebsd/x86_64-pc-freebsd12/                            \
- && mv usr /usr/freebsd/x86_64-pc-freebsd12/                            \
+ && mv lib /usr/freebsd/x86_64-pc-freebsd14/                            \
+ && mv usr /usr/freebsd/x86_64-pc-freebsd14/                            \
  && rm -rf /tmp/freebsd-amd64
 
-# Unpack i386 toolchain to /usr/freebsd/i386-pc-freebsd12
+# Unpack i386 toolchain to /usr/freebsd/i386-pc-freebsd14
 RUN mkdir -p /tmp/freebsd-i386                                         \
  && curl -fsSL "${FREEBSD_I386_URL}" -o /tmp/freebsd-i386/dvd1.iso.xz  \
- && mkdir -p /usr/freebsd/i386-pc-freebsd12                            \
+ && mkdir -p /usr/freebsd/i386-pc-freebsd14                            \
  && cd /tmp/freebsd-i386                                               \
  && xz -d dvd1.iso.xz                                                  \
  && bsdtar -xf dvd1.iso lib usr/include usr/lib                        \
- && mv lib /usr/freebsd/i386-pc-freebsd12/                             \
- && mv usr /usr/freebsd/i386-pc-freebsd12/                             \
+ && mv lib /usr/freebsd/i386-pc-freebsd14/                             \
+ && mv usr /usr/freebsd/i386-pc-freebsd14/                             \
  && rm -rf /tmp/freebsd-i386
 
-# Unpack arm64 toolchain to /usr/freebsd/aarch64-pc-freebsd12
+# Unpack arm64 toolchain to /usr/freebsd/aarch64-pc-freebsd14
 RUN mkdir -p /tmp/freebsd-arm64                                         \
  && curl -fsSL "${FREEBSD_ARM64_URL}" -o /tmp/freebsd-arm64/dvd1.iso.xz \
- && mkdir -p /usr/freebsd/aarch64-pc-freebsd12                          \
+ && mkdir -p /usr/freebsd/aarch64-pc-freebsd14                          \
  && cd /tmp/freebsd-arm64                                               \
  && xz -d dvd1.iso.xz                                                   \
  && bsdtar -xf dvd1.iso lib usr/include usr/lib                         \
- && mv lib /usr/freebsd/aarch64-pc-freebsd12/                           \
- && mv usr /usr/freebsd/aarch64-pc-freebsd12/                           \
+ && mv lib /usr/freebsd/aarch64-pc-freebsd14/                           \
+ && mv usr /usr/freebsd/aarch64-pc-freebsd14/                           \
  && rm -rf /tmp/freebsd-arm64
 
 # Create binutils to use for building FreeBSD targets. Specifically, we do this
