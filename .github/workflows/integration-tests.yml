@@ -40,5 +40,5 @@ jobs:
         working-directory: ./alloy
 
       - name: Build Alloy v1.0 assets with new build image
-        run: USE_CONTAINER=1 BUILD_IMAGE_VERSION=next DOCKER_OPTS="" make dist
+        run: USE_CONTAINER=1 BUILD_IMAGE_VERSION=next DOCKER_OPTS="" make build-container-cache dist
         working-directory: ./alloy
