@@ -1,3 +1,10 @@
+Unreleased
+----------
+
+### Enhancements
+
+* Update FreeBSD SDK to 14.0.
+
 v0.4.0 (2023-05-18)
 -------------------
 

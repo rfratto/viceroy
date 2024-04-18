@@ -4,13 +4,13 @@ CC_EXTRA=""
 
 case "$GOARCH" in
   amd64)
-    CC_EXTRA="-B/usr/freebsd/bin -target x86_64-pc-freebsd12 --sysroot=/usr/freebsd/x86_64-pc-freebsd12"
+    CC_EXTRA="-B/usr/freebsd/bin -target x86_64-pc-freebsd14 --sysroot=/usr/freebsd/x86_64-pc-freebsd14"
     ;;
   386)
-    CC_EXTRA="-B/usr/freebsd/bin -target i386-pc-freebsd12 --sysroot=/usr/freebsd/i386-pc-freebsd12"
+    CC_EXTRA="-B/usr/freebsd/bin -target i386-pc-freebsd14 --sysroot=/usr/freebsd/i386-pc-freebsd14"
     ;;
   arm64)
-    CC_EXTRA="-B/usr/freebsd/bin -target aarch64-pc-freebsd12 --sysroot=/usr/freebsd/aarch64-pc-freebsd12"
+    CC_EXTRA="-B/usr/freebsd/bin -target aarch64-pc-freebsd14 --sysroot=/usr/freebsd/aarch64-pc-freebsd14"
     ;;
   *)
     echo "fatal: unsupported \$GOARCH $GOARCH for freebsd. Must be one of: amd64, 386, arm64" >&2
