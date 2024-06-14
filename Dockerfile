@@ -6,6 +6,8 @@ RUN  export HOST=$(dpkg --print-architecture) \
   && dpkg --add-architecture armel    \
   && dpkg --add-architecture armhf    \
   && dpkg --add-architecture arm64    \
+  && dpkg --add-architecture mips     \
+  && dpkg --add-architecture mipsel   \
   && dpkg --add-architecture ppc64el  \
   && dpkg --add-architecture s390x    \
   && apt-get update                   \
@@ -18,6 +20,7 @@ RUN  export HOST=$(dpkg --print-architecture) \
         crossbuild-essential-armel    \
         crossbuild-essential-armhf    \
         crossbuild-essential-arm64    \
+        crossbuild-essential-mipsel   \
         crossbuild-essential-ppc64el  \
         crossbuild-essential-s390x    \
         libssl-dev                    \
